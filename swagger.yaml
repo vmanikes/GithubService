@@ -1,0 +1,68 @@
+---
+swagger: "2.0"
+info:
+  title: Search Service
+  description: This is the API for interacting with the Search service
+  version: 1.0.0
+schemes:
+  - http
+basePath: "/v1"
+securityDefinitions: {}
+paths:
+  "/health":
+    get:
+      operationId: HealthCheck
+      summary: Checks the Health of the Application
+      responses:
+        "200":
+          description: OK
+        "504":
+          description: GATEWAY TIMEOUT
+  "/search":
+    get:
+      parameters:
+        - in: query
+          name: search_term
+          type: string
+        - in: query
+          name: user
+          type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: "#/definitions/SearchResponse"
+        "400":
+          description: BAD REQUEST
+          schema:
+            $ref: "#/definitions/Error"
+        "500":
+          description: INTERNAL SERVER ERROR
+        "504":
+          description: GATEWAY TIMEOUT
+
+definitions:
+  Result:
+    type: object
+    properties:
+      file_url:
+        type: string
+      repo:
+        type: string
+    required:
+      - file_url
+      - repo
+
+  SearchResponse:
+    type: object
+    properties:
+      results:
+        type: array
+        items:
+          $ref: "#/definitions/Result"
+
+  Error:
+    type: object
+    properties:
+      message:
+        type: string
