@@ -27,18 +27,19 @@ type Client struct {
 	httpClient *http.Client
 }
 
-func New(username, password string) Github {
+func New(username, password string) (Github, error) {
 	if username == "" || password == "" {
-		panic("github username or password should not be empty")
+		return nil, errors.New("github username or password should not be empty")
 	}
 	return &Client{
 		apiKey: base64.RawURLEncoding.EncodeToString([]byte(username + ":" + password)),
 		httpClient: &http.Client{
 			Timeout: timeout * time.Second,
 		},
-	}
+	}, nil
 }
 
+// Search takes in a user and term and searches github for those values
 func (c *Client) Search(ctx context.Context, user, term string) (*SearchResponse, error) {
 	ctx = logger.AddKey(ctx, "scope", utils.GetFuncName())
 
@@ -68,29 +69,30 @@ func (c *Client) Search(ctx context.Context, user, term string) (*SearchResponse
 		}
 	}()
 
-	if response.StatusCode == 200 {
-		var searchResponse SearchResponse
+	if response.StatusCode == http.StatusOK {
+		var errResponse ErrorResponse
 
-		if err := json.NewDecoder(response.Body).Decode(&searchResponse); err != nil {
-			logger.Error(ctx, "unable to unmarshal response", err)
+		if err := json.NewDecoder(response.Body).Decode(&errResponse); err != nil {
+			logger.Error(ctx, "unable to unmarshal error response", err)
 			return nil, err
 		}
 
-		return &searchResponse, nil
+		var message string
+
+		for _, errorMessage := range errResponse.Errors {
+			message += errorMessage.Field + " " + errorMessage.Code
+		}
+
+		return nil, errors.New(message)
 	}
 
-	var errResponse ErrorResponse
 
-	if err := json.NewDecoder(response.Body).Decode(&errResponse); err != nil {
-		logger.Error(ctx, "unable to unmarshal error response", err)
+	var searchResponse SearchResponse
+
+	if err := json.NewDecoder(response.Body).Decode(&searchResponse); err != nil {
+		logger.Error(ctx, "unable to unmarshal response", err)
 		return nil, err
 	}
 
-	var message string
-
-	for _, errorMessage := range errResponse.Errors {
-		message += errorMessage.Field + " " + errorMessage.Code
-	}
-
-	return nil, errors.New(message)
+	return &searchResponse, nil
 }

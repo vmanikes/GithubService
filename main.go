@@ -5,6 +5,7 @@ import (
 	"GithubSearch/github"
 	v1 "GithubSearch/handler/v1"
 	"GithubSearch/routes"
+	some_service "GithubSearch/some-service"
 	"GithubSearch/utils"
 	"context"
 	"github.com/caarlos0/env/v6"
@@ -23,11 +24,18 @@ func main() {
 		os.Exit(1)
 	}
 
-	githubClient := github.New(cfg.Username, cfg.Password)
+	githubClient, err := github.New(cfg.Username, cfg.Password)
+	if err != nil {
+		logger.Error(ctx, "unable to instantiate client", err)
+		os.Exit(1)
+	}
+
+	someServiceClient := some_service.New()
 
 	handler := v1.Handler{
 		Cfg:          &cfg,
 		GithubClient: githubClient,
+		SomeService:  someServiceClient,
 	}
 
 	routerObj := routes.GetRoutes(&handler)

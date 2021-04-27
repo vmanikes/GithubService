@@ -38,6 +38,12 @@ func (h *Handler) Search(w http.ResponseWriter, r *http.Request) {
 
 	searchResponse.Results = results
 
+	err = h.SomeService.ResultParser(ctx, &searchResponse)
+	if err != nil {
+		response.ErrorResponse(http.StatusInternalServerError, "something is wrong", w)
+		return
+	}
+
 	response.SuccessResponse(http.StatusOK, w, results)
 	return
 }
